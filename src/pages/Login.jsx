@@ -1,24 +1,39 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find(u => u.email === email && u.password === password);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-    if (user) {
-      onLogin({ id: user.id, name: user.name, email: user.email });
-      navigate('/');
-    } else {
-      setError('Email atau password salah');
+      if (error) throw error;
+
+      if (data.user) {
+        onLogin({
+          id: data.user.id,
+          name: data.user.user_metadata?.name || data.user.email,
+          email: data.user.email
+        });
+        navigate('/');
+      }
+    } catch (err) {
+      setError(err.message || 'Login gagal');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -51,7 +66,9 @@ export default function Login({ onLogin }) {
               placeholder="Masukkan password"
             />
           </label>
-          <button type="submit" className="btn btn--solid auth-btn">Masuk</button>
+          <button type="submit" className="btn btn--solid auth-btn" disabled={loading}>
+            {loading ? 'Memuat...' : 'Masuk'}
+          </button>
         </form>
         
         <p className="auth-switch">

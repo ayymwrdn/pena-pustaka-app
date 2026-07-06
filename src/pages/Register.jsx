@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 export default function Register({ onLogin }) {
   const [name, setName] = useState('');
@@ -7,9 +8,10 @@ export default function Register({ onLogin }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -23,26 +25,35 @@ export default function Register({ onLogin }) {
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    if (users.some(u => u.email === email)) {
-      setError('Email sudah terdaftar');
-      return;
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        // Auto login setelah register
+        onLogin({
+          id: data.user.id,
+          name: name,
+          email: data.user.email
+        });
+        navigate('/');
+      }
+    } catch (err) {
+      setError(err.message || 'Registrasi gagal');
+    } finally {
+      setLoading(false);
     }
-
-    const newUser = {
-      id: Date.now().toString(),
-      name,
-      email,
-      password,
-      books: []
-    };
-
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
-
-    onLogin({ id: newUser.id, name: newUser.name, email: newUser.email });
-    navigate('/');
   };
 
   return (
@@ -94,7 +105,9 @@ export default function Register({ onLogin }) {
               placeholder="Masukkan ulang password"
             />
           </label>
-          <button type="submit" className="btn btn--solid auth-btn">Daftar</button>
+          <button type="submit" className="btn btn--solid auth-btn" disabled={loading}>
+            {loading ? 'Memuat...' : 'Daftar'}
+          </button>
         </form>
         
         <p className="auth-switch">

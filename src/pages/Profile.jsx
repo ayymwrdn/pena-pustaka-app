@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 
 export default function Profile({ user }) {
   const [books, setBooks] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingBook, setEditingBook] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [newBook, setNewBook] = useState({
     title: '',
     author: '',
@@ -14,22 +16,25 @@ export default function Profile({ user }) {
     driveLink: ''
   });
 
+  // Ambil buku dari Supabase
   useEffect(() => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const currentUser = users.find(u => u.id === user.id);
-    if (currentUser && currentUser.books) {
-      setBooks(currentUser.books);
-    }
+    fetchBooks();
   }, [user.id]);
 
-  const saveBooks = (updatedBooks) => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const userIndex = users.findIndex(u => u.id === user.id);
-    if (userIndex !== -1) {
-      users[userIndex].books = updatedBooks;
-      localStorage.setItem('users', JSON.stringify(users));
-      setBooks(updatedBooks);
+  const fetchBooks = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('books')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching books:', error);
+    } else {
+      setBooks(data || []);
     }
+    setLoading(false);
   };
 
   const handleImageChange = (e) => {
@@ -47,35 +52,55 @@ export default function Profile({ user }) {
     }
   };
 
-  const handleAddBook = (e) => {
+  const handleAddBook = async (e) => {
     e.preventDefault();
-    const book = {
-      id: Date.now().toString(),
+    
+    const bookData = {
+      user_id: user.id,
+      user_name: user.name,
       title: newBook.title,
       author: newBook.author || user.name,
       description: newBook.description,
-      coverImage: newBook.coverImagePreview || '',
-      driveLink: newBook.driveLink,
-      published: new Date().toISOString().split('T')[0],
-      userId: user.id
+      cover_image: newBook.coverImagePreview || '',
+      drive_link: newBook.driveLink,
+      published: new Date().toISOString().split('T')[0]
     };
-    const updatedBooks = [book, ...books];
-    saveBooks(updatedBooks);
-    setShowModal(false);
-    setNewBook({ 
-      title: '', 
-      author: '', 
-      description: '', 
-      coverImage: null, 
-      coverImagePreview: '',
-      driveLink: '' 
-    });
+
+    const { data, error } = await supabase
+      .from('books')
+      .insert([bookData])
+      .select();
+
+    if (error) {
+      console.error('Error adding book:', error);
+      alert('Gagal menambahkan buku!');
+    } else {
+      setBooks([data[0], ...books]);
+      setShowModal(false);
+      setNewBook({ 
+        title: '', 
+        author: '', 
+        description: '', 
+        coverImage: null, 
+        coverImagePreview: '',
+        driveLink: '' 
+      });
+    }
   };
 
-  const handleDeleteBook = (bookId) => {
+  const handleDeleteBook = async (bookId) => {
     if (window.confirm('Yakin ingin menghapus buku ini?')) {
-      const updatedBooks = books.filter(b => b.id !== bookId);
-      saveBooks(updatedBooks);
+      const { error } = await supabase
+        .from('books')
+        .delete()
+        .eq('id', bookId);
+
+      if (error) {
+        console.error('Error deleting book:', error);
+        alert('Gagal menghapus buku!');
+      } else {
+        setBooks(books.filter(b => b.id !== bookId));
+      }
     }
   };
 
@@ -84,41 +109,53 @@ export default function Profile({ user }) {
     setNewBook({
       title: book.title,
       author: book.author,
-      description: book.description,
+      description: book.description || '',
       coverImage: null,
-      coverImagePreview: book.coverImage || '',
-      driveLink: book.driveLink || ''
+      coverImagePreview: book.cover_image || '',
+      driveLink: book.drive_link || ''
     });
     setShowModal(true);
   };
 
-  const handleUpdateBook = (e) => {
+  const handleUpdateBook = async (e) => {
     e.preventDefault();
-    const updatedBooks = books.map(b => {
-      if (b.id === editingBook.id) {
-        return {
-          ...b,
-          title: newBook.title,
-          author: newBook.author,
-          description: newBook.description,
-          coverImage: newBook.coverImagePreview || b.coverImage,
-          driveLink: newBook.driveLink
-        };
-      }
-      return b;
-    });
-    saveBooks(updatedBooks);
-    setShowModal(false);
-    setEditingBook(null);
-    setNewBook({ 
-      title: '', 
-      author: '', 
-      description: '', 
-      coverImage: null, 
-      coverImagePreview: '',
-      driveLink: '' 
-    });
+    
+    const updateData = {
+      title: newBook.title,
+      author: newBook.author,
+      description: newBook.description,
+      cover_image: newBook.coverImagePreview || editingBook.cover_image,
+      drive_link: newBook.driveLink
+    };
+
+    const { error } = await supabase
+      .from('books')
+      .update(updateData)
+      .eq('id', editingBook.id);
+
+    if (error) {
+      console.error('Error updating book:', error);
+      alert('Gagal mengupdate buku!');
+    } else {
+      setBooks(books.map(b => 
+        b.id === editingBook.id ? { ...b, ...updateData } : b
+      ));
+      setShowModal(false);
+      setEditingBook(null);
+      setNewBook({ 
+        title: '', 
+        author: '', 
+        description: '', 
+        coverImage: null, 
+        coverImagePreview: '',
+        driveLink: '' 
+      });
+    }
   };
+
+  if (loading) {
+    return <div className="loading">Memuat buku...</div>;
+  }
 
   return (
     <section className="profile-page">
@@ -151,34 +188,35 @@ export default function Profile({ user }) {
           <div className="books-grid">
             {books.map((book) => (
               <div className="book-card" key={book.id}>
-                <div className="book-card__cover">
-                  {book.coverImage ? (
-                    <img src={book.coverImage} alt={book.title} className="book-card__cover-img" />
+                <div className="book-card__cover-wrapper">
+                  {book.cover_image ? (
+                    <img src={book.cover_image} alt={book.title} className="book-card__cover-img" />
                   ) : (
                     <div className="book-card__cover-placeholder" style={{ backgroundColor: '#c0392b' }}>
-                      <span className="book-card__kicker">E-book</span>
-                      <span className="book-card__title">{book.title}</span>
-                      <span className="book-card__author">— {book.author}</span>
+                      <span className="book-card__cover-title">{book.title}</span>
+                      <span className="book-card__cover-author">{book.author}</span>
                     </div>
                   )}
                 </div>
                 <div className="book-card__info">
-                  <h3>{book.title}</h3>
-                  <p className="book-card__author-name">{book.author}</p>
-                  <p className="book-card__description">{book.description}</p>
-                  <p className="book-card__date">{new Date(book.published).toLocaleDateString('id-ID')}</p>
-                  {book.driveLink ? (
-                    <Link to={`/read/${book.id}`} className="btn btn--solid book-card__read">
-                      Baca →
-                    </Link>
-                  ) : (
-                    <span className="book-card__no-pdf">Belum ada link</span>
-                  )}
+                  <h3 className="book-card__info-title">{book.title}</h3>
+                  <p className="book-card__info-author">{book.author}</p>
+                  <p className="book-card__info-desc">{book.description}</p>
+                  <div className="book-card__info-bottom">
+                    <span className="book-card__info-date">{new Date(book.published).toLocaleDateString('id-ID')}</span>
+                    {book.drive_link ? (
+                      <Link to={`/read/${book.id}`} className="btn btn--solid book-card__read">
+                        Baca →
+                      </Link>
+                    ) : (
+                      <span className="book-card__no-pdf">Belum ada link</span>
+                    )}
+                  </div>
                   <div className="book-card__actions">
-                    <button className="btn btn--ghost" onClick={() => handleEditBook(book)} style={{ fontSize: '0.85rem', padding: '4px 12px' }}>
+                    <button className="btn btn--ghost" onClick={() => handleEditBook(book)}>
                       Edit
                     </button>
-                    <button className="btn btn--ghost" onClick={() => handleDeleteBook(book.id)} style={{ fontSize: '0.85rem', padding: '4px 12px', color: '#e74c3c' }}>
+                    <button className="btn btn--ghost" onClick={() => handleDeleteBook(book.id)} style={{ color: '#e74c3c' }}>
                       Hapus
                     </button>
                   </div>
@@ -189,6 +227,7 @@ export default function Profile({ user }) {
         )}
       </div>
 
+      {/* Modal Tambah/Edit Buku */}
       {showModal && (
         <div className="modal-overlay" onClick={() => {
           setShowModal(false);

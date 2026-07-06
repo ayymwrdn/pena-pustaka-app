@@ -8,7 +8,6 @@ export default function Contact() {
     message: ''
   });
 
-  // LINK FORMSPREE KAMU
   const FORMSPREE_URL = "https://formspree.io/f/xdarjajv";
 
   async function handleSubmit(e) {
