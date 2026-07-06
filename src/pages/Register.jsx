@@ -14,44 +14,68 @@ export default function Register({ onLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     if (password !== confirmPassword) {
       setError('Password tidak cocok');
+      setLoading(false);
       return;
     }
 
     if (password.length < 6) {
       setError('Password minimal 6 karakter');
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
+    if (name.trim().length < 2) {
+      setError('Nama lengkap minimal 2 karakter');
+      setLoading(false);
+      return;
+    }
 
     try {
       const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+        email: email,
+        password: password,
         options: {
           data: {
-            name: name
+            name: name.trim()
           }
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+        return;
+      }
 
       if (data.user) {
-        // Auto login setelah register
-        onLogin({
-          id: data.user.id,
-          name: name,
-          email: data.user.email
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: password
         });
-        navigate('/');
+
+        if (signInError) {
+          setError('Akun dibuat, silakan login manual');
+          setLoading(false);
+          navigate('/login');
+          return;
+        }
+
+        if (signInData.user) {
+          onLogin({
+            id: signInData.user.id,
+            name: signInData.user.user_metadata?.name || signInData.user.email,
+            email: signInData.user.email
+          });
+          navigate('/');
+        }
       }
+
     } catch (err) {
       setError(err.message || 'Registrasi gagal');
-    } finally {
       setLoading(false);
     }
   };
@@ -62,7 +86,18 @@ export default function Register({ onLogin }) {
         <h2 className="auth-title">Daftar Akun</h2>
         <p className="auth-subtitle">Mulai tulis dan terbitkan e-book-mu</p>
         
-        {error && <div className="auth-error">{error}</div>}
+        {error && (
+          <div style={{ 
+            background: '#fee', 
+            color: '#c0392b', 
+            padding: '12px', 
+            borderRadius: '8px', 
+            marginBottom: '16px',
+            wordWrap: 'break-word'
+          }}>
+            {error}
+          </div>
+        )}
         
         <form onSubmit={handleSubmit} className="auth-form">
           <label>
@@ -72,7 +107,7 @@ export default function Register({ onLogin }) {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Nama kamu"
+              placeholder="Nama lengkap kamu"
             />
           </label>
           <label>

@@ -16,7 +16,6 @@ export default function Profile({ user }) {
     driveLink: ''
   });
 
-  // Ambil buku dari Supabase
   useEffect(() => {
     fetchBooks();
   }, [user.id]);
@@ -227,7 +226,6 @@ export default function Profile({ user }) {
         )}
       </div>
 
-      {/* Modal Tambah/Edit Buku */}
       {showModal && (
         <div className="modal-overlay" onClick={() => {
           setShowModal(false);
