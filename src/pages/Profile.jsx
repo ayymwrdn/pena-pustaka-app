@@ -152,6 +152,26 @@ export default function Profile({ user }) {
     }
   };
 
+  const handleShare = (book) => {
+    const shareUrl = `${window.location.origin}/read/${book.id}`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: book.title,
+        text: `Baca buku "${book.title}" oleh ${book.author} di Pena Pustaka`,
+        url: shareUrl
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(shareUrl)
+        .then(() => {
+          alert('Link buku berhasil disalin!');
+        })
+        .catch(() => {
+          alert('Gagal menyalin link!');
+        });
+    }
+  };
+
   if (loading) {
     return <div className="loading">Memuat buku...</div>;
   }
@@ -217,6 +237,13 @@ export default function Profile({ user }) {
                     </button>
                     <button className="btn btn--ghost" onClick={() => handleDeleteBook(book.id)} style={{ color: '#e74c3c' }}>
                       Hapus
+                    </button>
+                    <button 
+                      className="btn btn--ghost" 
+                      onClick={() => handleShare(book)}
+                      style={{ fontSize: '0.8rem' }}
+                    >
+                      Bagikan
                     </button>
                   </div>
                 </div>

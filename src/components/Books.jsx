@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 export default function Books({ user }) {
   const [allBooks, setAllBooks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [shareSuccess, setShareSuccess] = useState(null);
 
   useEffect(() => {
     fetchAllBooks();
@@ -23,6 +24,29 @@ export default function Books({ user }) {
       setAllBooks(data || []);
     }
     setLoading(false);
+  };
+
+  const handleShare = (book) => {
+    const shareUrl = `${window.location.origin}/read/${book.id}`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: book.title,
+        text: `Baca buku "${book.title}" oleh ${book.author} di Pena Pustaka`,
+        url: shareUrl
+      })
+      .then(() => setShareSuccess(book.id))
+      .catch(() => setShareSuccess(null));
+    } else {
+      navigator.clipboard.writeText(shareUrl)
+        .then(() => {
+          setShareSuccess(book.id);
+          setTimeout(() => setShareSuccess(null), 3000);
+        })
+        .catch(() => {
+          alert('Gagal menyalin link!');
+        });
+    }
   };
 
   if (loading) {
@@ -85,6 +109,21 @@ export default function Books({ user }) {
                   ) : (
                     <span className="book-card__no-pdf">Belum ada link</span>
                   )}
+                </div>
+                
+                <div className="book-card__share">
+                  <button 
+                    className="btn btn--outline book-card__share-btn"
+                    onClick={() => handleShare(book)}
+                    style={{ 
+                      width: '100%', 
+                      padding: '6px 12px', 
+                      fontSize: '0.8rem',
+                      marginTop: '8px'
+                    }}
+                  >
+                    {shareSuccess === book.id ? '✅ Link Disalin!' : '📤 Bagikan Buku'}
+                  </button>
                 </div>
               </div>
             </div>

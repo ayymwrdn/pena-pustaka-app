@@ -45,16 +45,11 @@ export default function ReadBook() {
 
   const getDriveEmbedLink = (link) => {
     if (!link) return null;
-    
-    // Cek apakah link sudah dalam format embed
     if (link.includes('preview')) return link;
-    
-    // Extract file ID dari link Google Drive
     const match = link.match(/\/d\/([^\/]+)/);
     if (match) {
       return `https://drive.google.com/file/d/${match[1]}/preview`;
     }
-    
     return link;
   };
 
@@ -83,9 +78,6 @@ export default function ReadBook() {
       </div>
     );
   }
-
-  const embedLink = getDriveEmbedLink(book.drive_link);
-  const isValid = embedLink !== null && embedLink !== book.drive_link;
 
   return (
     <div className="read-page">
