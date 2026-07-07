@@ -17,7 +17,7 @@ export default function About() {
   return (
     <section className="chapter" id="tentang">
       <div className="chapter__heading">
-        <span className="chapter__number">Bab 01</span>
+        <span className="chapter__number">TENTANG</span>
         <h2 className="chapter__title">Kenapa Pena Pustaka?</h2>
       </div>
 

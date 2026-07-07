@@ -44,7 +44,7 @@ export default function Contact() {
   return (
     <section className="chapter chapter--colophon" id="kontak">
       <div className="chapter__heading">
-        <span className="chapter__number">Kolofon</span>
+        <span className="chapter__number">KONTAK</span>
         <h2 className="chapter__title">Ada Masalah?</h2>
       </div>
 

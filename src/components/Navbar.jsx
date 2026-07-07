@@ -12,8 +12,8 @@ export default function Navbar({ theme, onToggleTheme, user, onLogout }) {
     <header className="navbar">
       <div className="navbar__inner">
         <Link to="/" className="navbar__brand">
-          <span className="navbar__mark">P</span>
-          Pena Pustaka
+          <img src="/logoo.png" alt="Pena Pustaka" className="navbar__logo" />
+          <span className="navbar__name">Pena Pustaka</span>
         </Link>
 
         <nav className="navbar__links">

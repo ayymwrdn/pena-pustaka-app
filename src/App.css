@@ -1847,3 +1847,33 @@ body {
     font-size: 1rem;
   }
 }
+/* ============================================
+   NAVBAR LOGO - UKURAN KECIL
+   ============================================ */
+.navbar__logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.navbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;  /* Jarak antara logo dan teks */
+}
+
+@media (max-width: 768px) {
+  .navbar__logo {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar__logo {
+    width: 20px;
+    height: 20px;
+  }
+}
